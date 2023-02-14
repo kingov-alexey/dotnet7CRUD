@@ -22,21 +22,22 @@ app.UseHttpsRedirection();
 
 
 //Initial_state
-var books = new List<Book> {
-    new Book { Id = 1, Title = "название 1", Author="asdfasdf"},
-    new Book { Id = 2, Title = "Гарипотер" },
-    new Book { Id = 3, Title = "Властелин колец" },
-    new Book { Id = 4, Title = "Патерны программирования" },
-    new Book { Id = 5, Title = "Е" },
-};
+//var books = new List<Book> {
+//    new Book { Id = 1, Title = "название 1", Author="asdfasdf"},
+//    new Book { Id = 2, Title = "Гарипотер" },
+//    new Book { Id = 3, Title = "Властелин колец" },
+//    new Book { Id = 4, Title = "Патерны программирования" },
+//    new Book { Id = 5, Title = "Е" },
+//};
 
 ////////////////// ******************** CRUD OPERATIONS ******************** ///////////////////////////
 
 /// ******************** C CREATE МЕТОД MapPOST - запись одной книги 
-app.MapPost("/book", (Book book) =>
+app.MapPost("/book", async (DataContext context, Book book) =>
 {
-    books.Add(book);
-    return books;
+    context.Books.Add(book);
+    await context.SaveChangesAsync();
+    return Results.Ok(await context.Books.ToListAsync());
 });
 
 /// ******************** R READ МЕТОД MapGet - Получение всех записей по id 
@@ -49,36 +50,50 @@ app.MapGet("/book", async (DataContext context) =>
     await context.Books.ToListAsync());
 
 /// ******************** R READ МЕТОД MapGet - Получение одной записи по id
-app.MapGet("/book{id}", (int id) => {
+//app.MapGet("/book{id}", (int id) =>
+//{
 
-    var book = books.Find(b => b.Id == id);
-    if (book is null)
-        return Results.NotFound("Sorry, this book doesnt't exist");
-    return Results.Ok(book);
-});
+//    var book = books.Find(b => b.Id == id);
+//    if (book is null)
+//        return Results.NotFound("Sorry, this book doesnt't exist");
+//    return Results.Ok(book);
+//});
+
+//app.MapGet("/book{id}", (int id) =>
+//{
+
+//refactor
+app.MapGet("/book{id}", async (DataContext context, int id) =>
+    await context.Books.FindAsync(id) is Book book ?
+    Results.Ok(book) : 
+    Results.NotFound("Sorry, book not found. :("));
 
 /// ******************** U UPDATE МЕТОД MapGet - 
-app.MapPut("/book{id}", (Book updateBook, int id) => {
+app.MapPut("/book{id}", async (DataContext context, Book updateBook, int id) =>
+{
 
-    var book = books.Find(b => b.Id == id);
+    var book = await context.Books.FindAsync(id);
     if (book is null)
         return Results.NotFound("Sorry, this book doesnt't exist");
-    
+
     book.Title = updateBook.Title;
     book.Author = updateBook.Author;
+    await context.SaveChangesAsync();
 
-    return Results.Ok(books);
+    return Results.Ok(await context.Books.ToListAsync());
 });
 
 /// ******************** D DELETE МЕТОД MapGet - 
-app.MapDelete("/book{id}", (int id) => {
+app.MapDelete("/book{id}", async (DataContext context, int id) =>
+{
 
-    var book = books.Find(b => b.Id == id);
+    var book = await context.Books.FindAsync(id);
     if (book is null)
         return Results.NotFound("Sorry, this book doesnt't exist");
-    books.Remove(book);
+    context.Books.Remove(book);
+    await context.SaveChangesAsync();
 
-    return Results.Ok(books);
+    return Results.Ok(await context.Books.ToListAsync());
 });
 
 app.Run();
